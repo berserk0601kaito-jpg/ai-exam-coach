@@ -1,10 +1,18 @@
 export const SONNET = 'claude-sonnet-4-6'
 export const HAIKU = 'claude-haiku-4-5-20251001'
 
-export function isMockMode() {
+function hasDirectKey() {
   const key = import.meta.env.VITE_ANTHROPIC_API_KEY
-  const useProxy = import.meta.env.VITE_USE_PROXY?.toLowerCase() === 'true'
-  return !useProxy && (!key || key === 'your_api_key_here')
+  return !!key && key !== 'your_api_key_here'
+}
+
+function useProxy() {
+  // Supabaseが設定されていてAPIキーが無い = 本番環境 = プロキシを使う
+  return !!import.meta.env.VITE_SUPABASE_URL && !hasDirectKey()
+}
+
+export function isMockMode() {
+  return !hasDirectKey() && !useProxy()
 }
 
 // ------- モックデータ -------
@@ -69,10 +77,9 @@ export async function callClaude({ system, messages, maxTokens = 1000, model = S
   const body = { model, max_tokens: maxTokens, messages }
   if (system) body.system = system
 
-  const useProxy = import.meta.env.VITE_USE_PROXY?.toLowerCase() === 'true'
-
-  const url = useProxy ? '/api/claude' : 'https://api.anthropic.com/v1/messages'
-  const headers = useProxy
+  const proxy = useProxy()
+  const url = proxy ? '/api/claude' : 'https://api.anthropic.com/v1/messages'
+  const headers = proxy
     ? { 'Content-Type': 'application/json' }
     : {
         'Content-Type': 'application/json',
