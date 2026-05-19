@@ -1,4 +1,7 @@
+import { useState } from 'react'
 import { useStorage } from '../hooks/useStorage'
+import { useAuth } from '../hooks/useAuth'
+import { isSupabaseConfigured } from '../lib/supabase'
 import { PLAN_LIMITS } from '../hooks/useUsage'
 
 const PLANS = [
@@ -33,11 +36,43 @@ const MESSAGES = {
   },
 }
 
+const isStripeEnabled = () => !!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+
 export default function PlanSelectPage({ reason = 'expired', onSelect }) {
   const { set } = useStorage()
+  const { user } = useAuth()
   const msg = MESSAGES[reason] ?? MESSAGES.expired
+  const [loading, setLoading] = useState(null)
+  const [error, setError] = useState(null)
 
-  const handleSelect = (planId) => {
+  const handleSelect = async (planId) => {
+    if (isStripeEnabled() && isSupabaseConfigured() && user) {
+      setLoading(planId)
+      setError(null)
+      try {
+        const res = await fetch('/api/create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            plan: planId,
+            userId: user.id,
+            successUrl: `${window.location.origin}/?payment=success`,
+            cancelUrl: window.location.href,
+          }),
+        })
+        const data = await res.json()
+        if (data.url) {
+          window.location.href = data.url
+          return
+        }
+        throw new Error(data.error || '決済画面の起動に失敗しました')
+      } catch (err) {
+        setError(err.message)
+        setLoading(null)
+        return
+      }
+    }
+    // Stripe未設定の場合はそのまま（デモ）
     set('user:plan', planId)
     onSelect(planId)
   }
@@ -56,7 +91,8 @@ export default function PlanSelectPage({ reason = 'expired', onSelect }) {
             <button
               key={plan.id}
               onClick={() => handleSelect(plan.id)}
-              className={`w-full bg-white border-2 rounded-2xl p-5 text-left hover:shadow-md transition-all ${plan.color}`}
+              disabled={loading === plan.id}
+              className={`w-full bg-white border-2 rounded-2xl p-5 text-left hover:shadow-md transition-all disabled:opacity-60 ${plan.color}`}
             >
               <div className="flex items-start justify-between">
                 <div>
@@ -71,15 +107,20 @@ export default function PlanSelectPage({ reason = 'expired', onSelect }) {
                   <p className="text-sm text-gray-500 mt-0.5">1日 {plan.limit} 回まで</p>
                 </div>
                 <div className="text-right">
-                  <span className="font-semibold text-indigo-700">{plan.price}</span>
+                  <span className="font-semibold text-indigo-700">
+                    {loading === plan.id ? '処理中...' : plan.price}
+                  </span>
                 </div>
               </div>
             </button>
           ))}
         </div>
 
+        {error && (
+          <p className="text-xs text-center text-red-500 mb-2">{error}</p>
+        )}
         <p className="text-xs text-center text-gray-400">
-          ※ デモ版のため実際の課金は発生しません
+          {isStripeEnabled() ? 'Stripe による安全な決済' : '※ デモ版のため実際の課金は発生しません'}
         </p>
       </div>
     </div>
