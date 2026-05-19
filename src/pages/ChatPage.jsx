@@ -9,6 +9,7 @@ import ScoresPage from './ScoresPage'
 import BooksPage from './BooksPage'
 import CalendarPage from './CalendarPage'
 import { useReminder } from '../hooks/useReminder'
+import HomeScreenPrompt from '../components/HomeScreenPrompt'
 
 function ComingSoon({ label }) {
   return (
@@ -109,6 +110,7 @@ export default function ChatPage({ onNavigateSettings, onSaveToCloud }) {
 
   return (
     <div className="flex h-screen overflow-hidden">
+      <HomeScreenPrompt />
       <Sidebar currentPage={currentPage} onNavigate={handleNavigate} teacher={teacher} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
