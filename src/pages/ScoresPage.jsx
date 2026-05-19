@@ -489,14 +489,95 @@ ${lines}
   )
 }
 
+// ── 推移グラフ ───────────────────────────────────────────
+const CHART_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899']
+
+function ScoreChart({ scores }) {
+  const sorted = [...scores].sort((a, b) => a.date.localeCompare(b.date))
+  const allSubjects = [...new Set(sorted.flatMap((e) => e.subjects.map((s) => s.name)))]
+
+  const subjectData = allSubjects.map((subj) => ({
+    name: subj,
+    points: sorted
+      .filter((e) => e.subjects.some((s) => s.name === subj))
+      .map((e) => {
+        const sub = e.subjects.find((s) => s.name === subj)
+        return { date: e.date, pct: Math.round((sub.score / sub.max) * 100) }
+      }),
+  })).filter((s) => s.points.length > 0)
+
+  const dates = [...new Set(sorted.map((e) => e.date))].sort()
+
+  const W = 320, H = 170
+  const PAD = { top: 12, right: 12, bottom: 28, left: 30 }
+  const cW = W - PAD.left - PAD.right
+  const cH = H - PAD.top - PAD.bottom
+
+  const xPos = (d) => dates.length === 1
+    ? PAD.left + cW / 2
+    : PAD.left + (dates.indexOf(d) / (dates.length - 1)) * cW
+  const yPos = (pct) => PAD.top + cH - (Math.min(pct, 100) / 100) * cH
+
+  return (
+    <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm max-w-lg mx-auto">
+      <p className="text-xs font-semibold text-gray-500 mb-2">得点率の推移（%）</p>
+      <div className="overflow-x-auto">
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`}>
+          {[0, 25, 50, 75, 100].map((v) => (
+            <g key={v}>
+              <line x1={PAD.left} y1={yPos(v)} x2={PAD.left + cW} y2={yPos(v)} stroke="#f3f4f6" strokeWidth="1" />
+              <text x={PAD.left - 4} y={yPos(v) + 4} textAnchor="end" fontSize="8" fill="#9ca3af">{v}</text>
+            </g>
+          ))}
+          {dates.map((d) => (
+            <text key={d} x={xPos(d)} y={H - 4} textAnchor="middle" fontSize="8" fill="#9ca3af">
+              {d.slice(5)}
+            </text>
+          ))}
+          {subjectData.slice(0, 7).map((subj, idx) => {
+            const color = CHART_COLORS[idx % CHART_COLORS.length]
+            const pts = subj.points
+            if (pts.length === 1) {
+              return <circle key={subj.name} cx={xPos(pts[0].date)} cy={yPos(pts[0].pct)} r={5} fill={color} />
+            }
+            const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xPos(p.date)} ${yPos(p.pct)}`).join(' ')
+            return (
+              <g key={subj.name}>
+                <path d={d} stroke={color} strokeWidth="2" fill="none" strokeLinejoin="round" />
+                {pts.map((p) => (
+                  <circle key={p.date} cx={xPos(p.date)} cy={yPos(p.pct)} r={3} fill={color} />
+                ))}
+              </g>
+            )
+          })}
+        </svg>
+      </div>
+      {subjectData.length > 1 && (
+        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+          {subjectData.slice(0, 7).map((subj, idx) => (
+            <div key={subj.name} className="flex items-center gap-1">
+              <div className="w-3 h-1.5 rounded-full" style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }} />
+              <span className="text-xs text-gray-500">{subj.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── メインページ ─────────────────────────────────────────
+const TAB_LABELS = { '定期テスト': '定期テスト', '記述模試': '記述模試', '共通テスト模試': '共通テスト' }
+
 export default function ScoresPage() {
   const { get }                            = useStorage()
   const { getAll, add, remove, updateAnalysis } = useScores()
   const [showAdd, setShowAdd]              = useState(false)
   const [scores, setScores]               = useState(() => getAll())
+  const [activeTab, setActiveTab]          = useState('定期テスト')
 
   const teacher = get('user:teacher')
+  const filtered = scores.filter((s) => s.examType === activeTab)
 
   const handleAdd = (entry) => {
     add(entry)
@@ -530,11 +611,34 @@ export default function ScoresPage() {
         </button>
       </div>
 
+      {/* タブ */}
+      <div className="flex border-b border-gray-200 bg-white flex-shrink-0">
+        {EXAM_TYPES.map((type) => {
+          const count = scores.filter((s) => s.examType === type).length
+          return (
+            <button
+              key={type}
+              onClick={() => setActiveTab(type)}
+              className={`flex-1 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+                activeTab === type
+                  ? 'border-indigo-600 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {TAB_LABELS[type]}
+              {count > 0 && <span className="ml-1 text-gray-400">({count})</span>}
+            </button>
+          )
+        })}
+      </div>
+
       <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
-        {scores.length === 0 ? (
+        {filtered.length >= 2 && <ScoreChart scores={filtered} />}
+
+        {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <div className="text-5xl mb-4">📊</div>
-            <p className="font-medium text-gray-600">成績を記録しよう</p>
+            <p className="font-medium text-gray-600">{TAB_LABELS[activeTab]}の成績を記録しよう</p>
             <p className="text-sm text-gray-400 mt-1">「+ 追加」から入力できます</p>
             <button
               onClick={() => setShowAdd(true)}
@@ -545,7 +649,7 @@ export default function ScoresPage() {
           </div>
         ) : (
           <div className="space-y-4 max-w-lg mx-auto">
-            {scores.map((entry) => (
+            {filtered.map((entry) => (
               <ScoreCard
                 key={entry.id}
                 entry={entry}
