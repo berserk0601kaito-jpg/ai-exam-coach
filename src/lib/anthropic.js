@@ -3,7 +3,8 @@ export const HAIKU = 'claude-haiku-4-5-20251001'
 
 export function isMockMode() {
   const key = import.meta.env.VITE_ANTHROPIC_API_KEY
-  const useProxy = import.meta.env.VITE_USE_PROXY === 'true'
+  const proxyVal = import.meta.env.VITE_USE_PROXY
+  const useProxy = proxyVal === 'true' || proxyVal === 'True' || proxyVal === '1'
   return !useProxy && (!key || key === 'your_api_key_here')
 }
 
@@ -69,7 +70,7 @@ export async function callClaude({ system, messages, maxTokens = 1000, model = S
   const body = { model, max_tokens: maxTokens, messages }
   if (system) body.system = system
 
-  const useProxy = import.meta.env.VITE_USE_PROXY === 'true'
+  const useProxy = ['true', 'True', '1'].includes(import.meta.env.VITE_USE_PROXY)
 
   const url = useProxy ? '/api/claude' : 'https://api.anthropic.com/v1/messages'
   const headers = useProxy
