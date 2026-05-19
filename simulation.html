@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI受験コーチ 損益シミュレーション</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f1f5f9;
+      color: #1e293b;
+      padding: 28px;
+      min-width: 900px;
+    }
+    h1 { font-size: 20px; font-weight: 700; }
+    .subtitle { color: #64748b; font-size: 13px; margin-top: 4px; margin-bottom: 24px; }
+
+    /* サマリーカード */
+    .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .scard { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .scard-val { font-size: 22px; font-weight: 700; }
+    .red   { color: #dc2626; }
+    .green { color: #16a34a; }
+    .blue  { color: #4f46e5; }
+    .amber { color: #d97706; }
+    .scard-label { font-size: 12px; color: #64748b; margin-top: 4px; line-height: 1.4; }
+
+    /* チャートグリッド */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .card.wide { grid-column: span 2; }
+    .card-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; display: flex; align-items: center; gap: 8px; }
+    .card-desc { font-size: 12px; color: #64748b; margin-bottom: 14px; line-height: 1.5; }
+    .badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 99px; }
+    .badge-red   { background: #fee2e2; color: #dc2626; }
+    .badge-green { background: #dcfce7; color: #16a34a; }
+    .badge-blue  { background: #e0e7ff; color: #4338ca; }
+    canvas { display: block; }
+    .note { font-size: 11px; color: #94a3b8; margin-top: 8px; }
+
+    /* 凡例エリア */
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #475569; }
+    .legend-dot { width: 12px; height: 3px; border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+<h1>📊 AI受験コーチ 損益シミュレーション</h1>
+<p class="subtitle">
+  モデル：チャット＝Claude Haiku 4.5 ($0.80/$4 per MTok) ／ 講師生成＝Claude Sonnet 4 ($3/$15 per MTok)
+  ／ 履歴ウィンドウ：直近15ターン ／ 1ドル＝150円
+</p>
+
+<div class="summary">
+  <div class="scard">
+    <div class="scard-val red">−37円</div>
+    <div class="scard-label">トライアル1人あたりの純損失<br>（3日間・15回/日 ≈ 45ターン）</div>
+  </div>
+  <div class="scard">
+    <div class="scard-val green">+736円</div>
+    <div class="scard-label">ライトプラン 月次粗利<br>（100%フル活用・利益率57%）</div>
+  </div>
+  <div class="scard">
+    <div class="scard-val green">+1,615円</div>
+    <div class="scard-label">スタンダードプラン 月次粗利<br>（100%フル活用・利益率54%）</div>
+  </div>
+  <div class="scard">
+    <div class="scard-val amber">〜2週間</div>
+    <div class="scard-label">トライアルコスト回収期間<br>（転換率30%・ライトプラン）</div>
+  </div>
+</div>
+
+<div class="grid">
+
+  <!-- Chart 1: ライトプラン コスト比較 -->
+  <div class="card">
+    <div class="card-title">
+      旧設計 vs 現設計 コスト推移
+      <span class="badge badge-blue">ライトプラン（20回/日）</span>
+    </div>
+    <div class="card-desc">
+      旧設計（Sonnet・全履歴送信）は <strong class="red">116ターン目で赤字転落</strong>。
+      現設計は600ターン使い切っても売上の43%以下のコストで収まる。
+    </div>
+    <canvas id="c1" height="240"></canvas>
+    <p class="note">※ 旧設計は600ターン時に約32,778円に到達（グラフ範囲外）</p>
+  </div>
+
+  <!-- Chart 2: スタンダードプラン コスト比較 -->
+  <div class="card">
+    <div class="card-title">
+      旧設計 vs 現設計 コスト推移
+      <span class="badge badge-blue">スタンダードプラン（50回/日）</span>
+    </div>
+    <div class="card-desc">
+      旧設計は <strong class="red">178ターン目（約3.6日）で赤字転落</strong>。
+      現設計は1,500ターン使い切っても売上の46%以下に収まる。
+    </div>
+    <canvas id="c2" height="240"></canvas>
+    <p class="note">※ 旧設計は1,500ターン時に約202,500円に到達（グラフ範囲外）</p>
+  </div>
+
+  <!-- Chart 3: 利用率別損益 -->
+  <div class="card">
+    <div class="card-title">
+      現設計：利用率別 月次損益
+      <span class="badge badge-green">全パターン黒字</span>
+    </div>
+    <div class="card-desc">
+      どの利用率でも全プランが黒字。100%フル活用でも赤字にならない。
+      利用率が低いほど利益率が上がる構造。
+    </div>
+    <canvas id="c3" height="240"></canvas>
+  </div>
+
+  <!-- Chart 4: APIキー漏洩シナリオ -->
+  <div class="card">
+    <div class="card-title">
+      現設計で赤字になるケース：APIキー漏洩
+      <span class="badge badge-red">要注意</span>
+    </div>
+    <div class="card-desc">
+      外部から直接APIを叩かれると回数制限・履歴制限をバイパスされる。
+      1日<strong class="red">〜100回の不正コール</strong>で1ユーザー分の利益が消える。
+    </div>
+    <canvas id="c4" height="240"></canvas>
+  </div>
+
+  <!-- Chart 5: トライアルLTV -->
+  <div class="card wide">
+    <div class="card-title">
+      トライアル獲得コスト（37円）vs 転換後12ヶ月累計粗利
+      <span class="badge badge-green">ROI 非常に高い</span>
+    </div>
+    <div class="card-desc">
+      転換率10%でも約3ヶ月でトライアルコストを回収。
+      転換率30%・ライトプランで12ヶ月累計粗利は<strong class="green">約3,200円/トライアル1件あたり</strong>。
+    </div>
+    <canvas id="c5" height="200"></canvas>
+  </div>
+
+</div>
+
+<script>
+// ====================================================
+// コスト計算関数
+// ====================================================
+
+// 旧設計：Sonnet・全履歴送信（コスト爆増）
+// Turn k の入力 = 100 + 400×(k-1) トークン、出力 = 300 トークン
+// Sonnet: 入力 $3/MTok → 0.00045円/token、出力 $15/MTok → 0.00225円/token
+function oldCost(n) {
+  if (n <= 0) return 0
+  // Sum_k=1^n [ (100 + 400(k-1)) × 0.00045 + 300 × 0.00225 ]
+  // = 0.045n + 0.18 × n(n-1)/2 + 0.675n
+  // = 0.72n + 0.09n(n-1)
+  return 0.72 * n + 0.09 * n * (n - 1)
+}
+
+// 現設計：Haiku・15ターン履歴ウィンドウ
+// Haiku: 入力 $0.80/MTok → 0.00012円/token、出力 $4/MTok → 0.0006円/token
+// 安定期（k>15）1ターンあたり：6100 × 0.00012 + 300 × 0.0006 = 0.732 + 0.18 = 0.912円
+function newCost(n) {
+  if (n <= 0) return 0
+  let cost = 0
+  for (let k = 1; k <= n; k++) {
+    const inputTokens = k <= 15 ? 100 + 400 * (k - 1) : 6100
+    cost += inputTokens * 0.00012 + 300 * 0.0006
+  }
+  return cost
+}
+
+// 旧設計の赤字転落点を探す
+function findBreakEven(revenue, maxN = 2000) {
+  for (let n = 1; n <= maxN; n++) {
+    if (oldCost(n) >= revenue) return n
+  }
+  return maxN
+}
+
+// ====================================================
+// カスタムプラグイン：縦線＋ラベル描画
+// ====================================================
+const vlinePlugin = {
+  id: 'vline',
+  afterDraw(chart) {
+    const vlines = chart.options.plugins?.vline
+    if (!vlines || !vlines.length) return
+    const ctx = chart.ctx
+    const xScale = chart.scales.x
+    const yScale = chart.scales.y
+    vlines.forEach(({ x, label, color }) => {
+      const px = xScale.getPixelForValue(x)
+      ctx.save()
+      ctx.beginPath()
+      ctx.moveTo(px, yScale.top)
+      ctx.lineTo(px, yScale.bottom)
+      ctx.strokeStyle = color || '#dc2626'
+      ctx.lineWidth = 1.5
+      ctx.setLineDash([4, 3])
+      ctx.stroke()
+      if (label) {
+        ctx.fillStyle = color || '#dc2626'
+        ctx.font = 'bold 10px sans-serif'
+        ctx.fillText(label, px + 4, yScale.top + 14)
+      }
+      ctx.restore()
+    })
+  }
+}
+Chart.register(vlinePlugin)
+
+// ====================================================
+// 共通スタイル
+// ====================================================
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+Chart.defaults.font.size = 11
+
+const C = {
+  red:      'rgb(220, 38, 38)',
+  redBg:    'rgba(220, 38, 38, 0.10)',
+  blue:     'rgb(79, 70, 229)',
+  blueBg:   'rgba(79, 70, 229, 0.10)',
+  green:    'rgb(22, 163, 74)',
+  greenBg:  'rgba(22, 163, 74, 0.10)',
+  amber:    'rgb(217, 119, 6)',
+  gray:     'rgba(100, 116, 139, 0.5)',
+}
+
+// ====================================================
+// Chart 1: ライトプラン コスト比較（0〜200ターン）
+// ====================================================
+;(function() {
+  const breakEven = findBreakEven(1280) // ~116
+  const N = 200
+  const labels = Array.from({ length: N + 1 }, (_, i) => i)
+  const maxY = 3000
+
+  new Chart(document.getElementById('c1'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '旧設計コスト（Sonnet・全履歴）',
+          data: labels.map(n => Math.min(oldCost(n), maxY + 100)),
+          borderColor: C.red,
+          backgroundColor: C.redBg,
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: true,
+          tension: 0.05,
+          clip: true,
+        },
+        {
+          label: '現設計コスト（Haiku・15T制限）',
+          data: labels.map(n => newCost(n)),
+          borderColor: C.blue,
+          backgroundColor: C.blueBg,
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: true,
+          tension: 0.05,
+        },
+        {
+          label: '月額売上（1,280円）',
+          data: labels.map(() => 1280),
+          borderColor: C.green,
+          borderWidth: 2,
+          borderDash: [7, 4],
+          pointRadius: 0,
+          fill: false,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      scales: {
+        x: {
+          title: { display: true, text: '月間ターン数' },
+          ticks: { maxTicksLimit: 10 },
+        },
+        y: {
+          title: { display: true, text: '円' },
+          min: 0, max: maxY,
+          ticks: { callback: v => v.toLocaleString() + '円' },
+        },
+      },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 14 } },
+        tooltip: {
+          mode: 'index', intersect: false,
+          callbacks: { label: c => `${c.dataset.label}: ${Math.round(c.raw).toLocaleString()}円` },
+        },
+        vline: [{ x: breakEven, label: `赤字転落 ${breakEven}T目`, color: C.red }],
+      },
+    },
+  })
+})()
+
+// ====================================================
+// Chart 2: スタンダードプラン コスト比較（0〜300ターン）
+// ====================================================
+;(function() {
+  const breakEven = findBreakEven(2980) // ~178
+  const N = 300
+  const labels = Array.from({ length: N + 1 }, (_, i) => i)
+  const maxY = 6000
+
+  new Chart(document.getElementById('c2'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '旧設計コスト（Sonnet・全履歴）',
+          data: labels.map(n => Math.min(oldCost(n), maxY + 100)),
+          borderColor: C.red,
+          backgroundColor: C.redBg,
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: true,
+          tension: 0.05,
+        },
+        {
+          label: '現設計コスト（Haiku・15T制限）',
+          data: labels.map(n => newCost(n)),
+          borderColor: C.blue,
+          backgroundColor: C.blueBg,
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: true,
+          tension: 0.05,
+        },
+        {
+          label: '月額売上（2,980円）',
+          data: labels.map(() => 2980),
+          borderColor: C.green,
+          borderWidth: 2,
+          borderDash: [7, 4],
+          pointRadius: 0,
+          fill: false,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      scales: {
+        x: {
+          title: { display: true, text: '月間ターン数' },
+          ticks: { maxTicksLimit: 10 },
+        },
+        y: {
+          title: { display: true, text: '円' },
+          min: 0, max: maxY,
+          ticks: { callback: v => v.toLocaleString() + '円' },
+        },
+      },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 14 } },
+        tooltip: {
+          mode: 'index', intersect: false,
+          callbacks: { label: c => `${c.dataset.label}: ${Math.round(c.raw).toLocaleString()}円` },
+        },
+        vline: [{ x: breakEven, label: `赤字転落 ${breakEven}T目`, color: C.red }],
+      },
+    },
+  })
+})()
+
+// ====================================================
+// Chart 3: 利用率別 月次損益（棒グラフ）
+// ====================================================
+;(function() {
+  const rates = [50, 70, 100]
+  const plans = [
+    { label: 'ライト (1,280円)', maxTurns: 600, revenue: 1280 },
+    { label: 'スタンダード (2,980円)', maxTurns: 1500, revenue: 2980 },
+  ]
+
+  const barColors = ['rgba(134,239,172,.9)', 'rgba(74,222,128,.9)', 'rgba(34,197,94,.9)']
+  const borderColors = ['#16a34a', '#15803d', '#14532d']
+
+  const datasets = rates.map((rate, i) => ({
+    label: `利用率 ${rate}%`,
+    data: plans.map(p => {
+      const turns = Math.round(p.maxTurns * rate / 100)
+      return Math.round(p.revenue - newCost(turns) - 2) // 2円=講師生成コスト
+    }),
+    backgroundColor: barColors[i],
+    borderColor: borderColors[i],
+    borderWidth: 1,
+    borderRadius: 6,
+  }))
+
+  new Chart(document.getElementById('c3'), {
+    type: 'bar',
+    data: { labels: plans.map(p => p.label), datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      scales: {
+        y: {
+          title: { display: true, text: '月次粗利（円）' },
+          min: 0,
+          ticks: { callback: v => '+' + v.toLocaleString() + '円' },
+        },
+      },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 14 } },
+        tooltip: {
+          callbacks: { label: c => `${c.dataset.label}: +${c.raw.toLocaleString()}円 / 月` },
+        },
+      },
+    },
+  })
+})()
+
+// ====================================================
+// Chart 4: APIキー漏洩シナリオ
+// ====================================================
+;(function() {
+  // 不正コール1回あたりのコスト（Haiku・履歴なし）
+  // 入力400T: 400 × 0.00012 = 0.048円
+  // 出力300T: 300 × 0.0006  = 0.18円
+  // 合計: 0.228円/コール
+  const costPerCall = 0.228
+
+  // ライト・スタンダードの1ユーザーあたり日次粗利
+  const lightDailyProfit  = Math.round((1280 - newCost(600) - 2) / 30 * 10) / 10  // ~24.5円
+  const stdDailyProfit    = Math.round((2980 - newCost(1500) - 2) / 30 * 10) / 10 // ~53.8円
+
+  const maxCalls = 2000
+  const step = 50
+  const labels = Array.from({ length: maxCalls / step + 1 }, (_, i) => i * step)
+
+  new Chart(document.getElementById('c4'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '不正利用による1日のAPIコスト',
+          data: labels.map(n => Math.round(n * costPerCall * 10) / 10),
+          borderColor: C.red,
+          backgroundColor: C.redBg,
+          borderWidth: 2.5,
+          pointRadius: 0,
+          fill: true,
+          tension: 0.05,
+        },
+        {
+          label: `ライトユーザー10人分の日次粗利（${lightDailyProfit * 10}円）`,
+          data: labels.map(() => Math.round(lightDailyProfit * 10)),
+          borderColor: C.blue,
+          borderWidth: 1.5,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          fill: false,
+        },
+        {
+          label: `スタンダードユーザー10人分の日次粗利（${stdDailyProfit * 10}円）`,
+          data: labels.map(() => Math.round(stdDailyProfit * 10)),
+          borderColor: C.green,
+          borderWidth: 1.5,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          fill: false,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      scales: {
+        x: {
+          title: { display: true, text: '1日の不正コール数' },
+          ticks: { maxTicksLimit: 9 },
+        },
+        y: {
+          title: { display: true, text: '円/日' },
+          min: 0,
+          ticks: { callback: v => v + '円' },
+        },
+      },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 14 } },
+        tooltip: {
+          mode: 'index', intersect: false,
+          callbacks: { label: c => `${c.dataset.label}: ${c.raw}円` },
+        },
+      },
+    },
+  })
+})()
+
+// ====================================================
+// Chart 5: トライアル LTV
+// ====================================================
+;(function() {
+  const trialCost = 37
+  const rates = [0.10, 0.20, 0.30, 0.50]
+  const labels = rates.map(r => `転換率 ${r * 100}%`)
+  const months = 12
+  const lightMonthlyProfit  = Math.round(1280 - newCost(Math.round(600 * 0.70)) - 2)   // ~894円
+  const stdMonthlyProfit    = Math.round(2980 - newCost(Math.round(1500 * 0.70)) - 2)  // ~2020円
+
+  new Chart(document.getElementById('c5'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: `ライト転換 12ヶ月LTV（月次粗利${lightMonthlyProfit}円×12 − トライアルコスト）`,
+          data: rates.map(r => Math.round(r * lightMonthlyProfit * months - trialCost)),
+          backgroundColor: 'rgba(99,102,241,.8)',
+          borderRadius: 6,
+        },
+        {
+          label: `スタンダード転換 12ヶ月LTV（月次粗利${stdMonthlyProfit}円×12 − トライアルコスト）`,
+          data: rates.map(r => Math.round(r * stdMonthlyProfit * months - trialCost)),
+          backgroundColor: 'rgba(16,185,129,.8)',
+          borderRadius: 6,
+        },
+        {
+          label: `トライアルコスト（−${trialCost}円）`,
+          data: rates.map(() => -trialCost),
+          backgroundColor: 'rgba(220,38,38,.7)',
+          borderRadius: 6,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      scales: {
+        y: {
+          title: { display: true, text: '12ヶ月累計粗利（円）' },
+          ticks: { callback: v => v.toLocaleString() + '円' },
+        },
+      },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 14 } },
+        tooltip: {
+          callbacks: { label: c => `${c.dataset.label}: ${c.raw.toLocaleString()}円` },
+        },
+      },
+    },
+  })
+})()
+</script>
+</body>
+</html>
