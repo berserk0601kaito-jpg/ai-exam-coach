@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useStorage } from './hooks/useStorage'
 import { useAuth } from './hooks/useAuth'
+import { useDataSync } from './hooks/useDataSync'
 import { isSupabaseConfigured } from './lib/supabase'
 import SurveyPage from './pages/SurveyPage'
 import ChatPage from './pages/ChatPage'
@@ -21,13 +22,14 @@ function isTrialExpired(trialStart) {
 export default function App() {
   const { get } = useStorage()
   const { user, loading: authLoading } = useAuth()
+  const { cloudLoaded, saveToCloud } = useDataSync(user)
   const [screen, setScreen] = useState('loading') // loading | auth | survey | chat | settings | plan | plan-device
 
   useEffect(() => {
-    // Supabaseが設定されていて、まだ認証チェック中なら待つ
-    if (isSupabaseConfigured() && authLoading) return
+    // 認証チェック中 or クラウドデータロード中は待つ
+    if (isSupabaseConfigured() && (authLoading || !cloudLoaded)) return
 
-    // Supabaseが設定されていて、未ログインならauth画面へ
+    // 未ログインならauth画面へ
     if (isSupabaseConfigured() && !user) {
       setScreen('auth')
       return
@@ -54,10 +56,11 @@ export default function App() {
     }
 
     setScreen('chat')
-  }, [authLoading, user])
+  }, [authLoading, user, cloudLoaded])
 
   const handleSurveyComplete = ({ profile, teacher }) => {
     setScreen('chat')
+    setTimeout(saveToCloud, 500)
   }
 
   if (screen === 'loading') {
