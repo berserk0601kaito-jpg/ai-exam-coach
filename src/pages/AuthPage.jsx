@@ -37,11 +37,28 @@ export default function AuthPage() {
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-50 flex items-center justify-center p-6">
         <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-sm">
           <div className="text-5xl mb-4">📧</div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">確認メールを送りました</h2>
-          <p className="text-sm text-gray-500 mb-6">
-            <span className="font-medium text-gray-700">{email}</span> に確認メールを送りました。
-            メール内のリンクをクリックしてアカウントを有効化してください。
+          <h2 className="text-xl font-bold text-gray-800 mb-3">確認メールを送りました</h2>
+
+          <div className="bg-indigo-50 rounded-xl p-4 mb-5 text-left space-y-2">
+            <p className="text-sm font-semibold text-indigo-800">次の手順でログインできます：</p>
+            <div className="flex items-start gap-2 text-sm text-gray-700">
+              <span className="text-indigo-500 font-bold shrink-0">①</span>
+              <span><span className="font-medium">{email}</span> のメールを開く</span>
+            </div>
+            <div className="flex items-start gap-2 text-sm text-gray-700">
+              <span className="text-indigo-500 font-bold shrink-0">②</span>
+              <span>メール内の <span className="font-medium text-indigo-700">「Confirm email address」</span> ボタンを押す</span>
+            </div>
+            <div className="flex items-start gap-2 text-sm text-gray-700">
+              <span className="text-indigo-500 font-bold shrink-0">③</span>
+              <span>このページに戻ってログインする</span>
+            </div>
+          </div>
+
+          <p className="text-xs text-gray-400 mb-5">
+            メールが届かない場合は迷惑メールフォルダもご確認ください
           </p>
+
           <button
             onClick={() => { setSignupDone(false); setMode('login') }}
             className="w-full bg-indigo-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-indigo-700"
