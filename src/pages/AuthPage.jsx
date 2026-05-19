@@ -3,12 +3,13 @@ import { useAuth } from '../hooks/useAuth'
 
 export default function AuthPage() {
   const { signIn, signUp } = useAuth()
-  const [mode, setMode] = useState('login') // 'login' | 'signup'
+  const [mode, setMode] = useState('login') // 'login' | 'signup' | 'reset'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [signupDone, setSignupDone] = useState(false)
+  const [resetDone, setResetDone] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -17,9 +18,17 @@ export default function AuthPage() {
     try {
       if (mode === 'login') {
         await signIn(email, password)
-      } else {
+      } else if (mode === 'signup') {
         await signUp(email, password)
         setSignupDone(true)
+      } else if (mode === 'reset') {
+        const { error } = await import('../lib/supabase').then(m =>
+          m.supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/`,
+          })
+        )
+        if (error) throw error
+        setResetDone(true)
       }
     } catch (err) {
       const msg = err.message || 'エラーが発生しました'
@@ -30,6 +39,26 @@ export default function AuthPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (resetDone) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-sm">
+          <div className="text-5xl mb-4">📧</div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">メールを送りました</h2>
+          <p className="text-sm text-gray-500 mb-6">
+            <span className="font-medium text-gray-700">{email}</span> にパスワード再設定のリンクを送りました。
+          </p>
+          <button
+            onClick={() => { setResetDone(false); setMode('login') }}
+            className="w-full bg-indigo-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-indigo-700"
+          >
+            ログイン画面へ
+          </button>
+        </div>
+      </div>
+    )
   }
 
   if (signupDone) {
@@ -77,7 +106,7 @@ export default function AuthPage() {
           <div className="text-5xl mb-3">🎓</div>
           <h1 className="text-2xl font-bold text-gray-800">AI受験コーチ</h1>
           <p className="text-sm text-gray-500 mt-1">
-            {mode === 'login' ? 'ログイン' : 'アカウント作成'}
+            {mode === 'login' ? 'ログイン' : mode === 'signup' ? 'アカウント作成' : 'パスワード再設定'}
           </p>
         </div>
 
@@ -94,18 +123,20 @@ export default function AuthPage() {
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">パスワード</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="6文字以上"
-                minLength={6}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              />
-            </div>
+            {mode !== 'reset' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">パスワード</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="6文字以上"
+                  minLength={6}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                />
+              </div>
+            )}
 
             {error && (
               <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>
@@ -116,11 +147,21 @@ export default function AuthPage() {
               disabled={loading}
               className="w-full bg-indigo-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60"
             >
-              {loading ? '処理中...' : mode === 'login' ? 'ログイン' : 'アカウント作成'}
+              {loading ? '処理中...' : mode === 'login' ? 'ログイン' : mode === 'signup' ? 'アカウント作成' : 'リセットメールを送る'}
             </button>
           </form>
 
-          <div className="mt-4 text-center">
+          <div className="mt-4 text-center space-y-2">
+            {mode === 'login' && (
+              <p className="text-sm text-gray-400">
+                <button
+                  onClick={() => { setMode('reset'); setError(null) }}
+                  className="hover:underline"
+                >
+                  パスワードを忘れた方はこちら
+                </button>
+              </p>
+            )}
             {mode === 'login' ? (
               <p className="text-sm text-gray-500">
                 アカウントをお持ちでない方は
@@ -133,7 +174,7 @@ export default function AuthPage() {
               </p>
             ) : (
               <p className="text-sm text-gray-500">
-                すでにアカウントをお持ちの方は
+                {mode === 'reset' ? 'パスワードを思い出した方は' : 'すでにアカウントをお持ちの方は'}
                 <button
                   onClick={() => { setMode('login'); setError(null) }}
                   className="text-indigo-600 font-medium ml-1 hover:underline"

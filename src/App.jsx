@@ -123,7 +123,7 @@ export default function App() {
       return <PlanSelectPage onSelect={() => setScreen('chat')} />
     }
     return (
-      <ChatPage onNavigateSettings={() => setScreen('settings')} />
+      <ChatPage onNavigateSettings={() => setScreen('settings')} onSaveToCloud={saveToCloud} />
     )
   }
 

@@ -22,7 +22,7 @@ function ComingSoon({ label }) {
   )
 }
 
-export default function ChatPage({ onNavigateSettings }) {
+export default function ChatPage({ onNavigateSettings, onSaveToCloud }) {
   const { get, set } = useStorage()
   const { sendMessage, retry, isLoading, error, setError, getRemainingCount } = useChat()
   useReminder()
@@ -85,7 +85,10 @@ export default function ChatPage({ onNavigateSettings }) {
 
   const handleSend = async (content) => {
     const updated = await sendMessage(content)
-    if (updated) setMessages(updated)
+    if (updated) {
+      setMessages(updated)
+      onSaveToCloud?.()
+    }
   }
 
   const handleRetry = async () => {
