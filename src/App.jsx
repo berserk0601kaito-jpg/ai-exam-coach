@@ -100,6 +100,7 @@ export default function App() {
         onChangeTeacher={() => setScreen('survey-change-teacher')}
         onUpdateProfile={() => setScreen('survey-update-profile')}
         onBack={() => setScreen('chat')}
+        onLogout={() => setScreen('auth')}
       />
     )
   }

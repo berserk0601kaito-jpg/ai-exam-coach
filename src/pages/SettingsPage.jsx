@@ -1,4 +1,6 @@
 import { useStorage } from '../hooks/useStorage'
+import { useAuth } from '../hooks/useAuth'
+import { isSupabaseConfigured } from '../lib/supabase'
 import { PLAN_LIMITS } from '../hooks/useUsage'
 
 const PLAN_LABELS = {
@@ -7,8 +9,15 @@ const PLAN_LABELS = {
   standard: 'スタンダード（2,980円/月）',
 }
 
-export default function SettingsPage({ onChangeTeacher, onUpdateProfile, onBack }) {
+export default function SettingsPage({ onChangeTeacher, onUpdateProfile, onBack, onLogout }) {
   const { get, remove } = useStorage()
+  const { signOut } = useAuth()
+
+  const handleLogout = async () => {
+    if (!window.confirm('ログアウトしますか？')) return
+    if (isSupabaseConfigured()) await signOut().catch(() => {})
+    onLogout?.()
+  }
   const profile = get('user:profile') || {}
   const teacher = get('user:teacher')
   const plan = get('user:plan') || 'trial'
@@ -99,6 +108,18 @@ export default function SettingsPage({ onChangeTeacher, onUpdateProfile, onBack 
               保存済みメッセージ数：<span className="font-medium">{historyCount} 件</span>
             </p>
           </section>
+
+          {/* ログアウト */}
+          {isSupabaseConfigured() && (
+            <section className="bg-white rounded-2xl p-5 shadow-sm mb-4">
+              <button
+                onClick={handleLogout}
+                className="w-full border border-red-200 text-red-500 py-2.5 rounded-xl text-sm font-medium hover:bg-red-50 transition-colors"
+              >
+                ログアウト
+              </button>
+            </section>
+          )}
         </div>
       </div>
     </div>
