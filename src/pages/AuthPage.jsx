@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { supabase } from '../lib/supabase'
 
 export default function AuthPage() {
   const { signIn, signUp } = useAuth()
@@ -22,11 +23,9 @@ export default function AuthPage() {
         await signUp(email, password)
         setSignupDone(true)
       } else if (mode === 'reset') {
-        const { error } = await import('../lib/supabase').then(m =>
-          m.supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/`,
-          })
-        )
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/`,
+        })
         if (error) throw error
         setResetDone(true)
       }
