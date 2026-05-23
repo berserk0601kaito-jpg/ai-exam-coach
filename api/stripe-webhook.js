@@ -36,9 +36,20 @@ export default async function handler(req, res) {
         process.env.SUPABASE_SERVICE_ROLE_KEY
       )
 
+      const { data: existing } = await supabase
+        .from('user_data')
+        .select('profile')
+        .eq('user_id', userId)
+        .single()
+
+      const updatedProfile = {
+        ...(existing?.profile || {}),
+        stripeCustomerId: session.customer,
+      }
+
       await supabase
         .from('user_data')
-        .upsert({ user_id: userId, plan })
+        .upsert({ user_id: userId, plan, profile: updatedProfile })
     }
   }
 

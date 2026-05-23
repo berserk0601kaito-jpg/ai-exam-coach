@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useStorage } from '../hooks/useStorage'
 import { useAuth } from '../hooks/useAuth'
 import { isSupabaseConfigured } from '../lib/supabase'
@@ -11,12 +12,37 @@ const PLAN_LABELS = {
 
 export default function SettingsPage({ onChangeTeacher, onUpdateProfile, onBack, onLogout }) {
   const { get, remove } = useStorage()
-  const { signOut } = useAuth()
+  const { signOut, user } = useAuth()
+  const [portalLoading, setPortalLoading] = useState(false)
+  const [portalError, setPortalError] = useState(null)
 
   const handleLogout = async () => {
     if (!window.confirm('ログアウトしますか？')) return
     if (isSupabaseConfigured()) await signOut().catch(() => {})
     onLogout?.()
+  }
+
+  const handleManageSubscription = async () => {
+    if (!user) return
+    setPortalLoading(true)
+    setPortalError(null)
+    try {
+      const res = await fetch('/api/customer-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, returnUrl: window.location.origin }),
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        setPortalError(data.error || 'エラーが発生しました')
+      }
+    } catch {
+      setPortalError('通信エラーが発生しました')
+    } finally {
+      setPortalLoading(false)
+    }
   }
   const profile = get('user:profile') || {}
   const teacher = get('user:teacher')
@@ -100,6 +126,26 @@ export default function SettingsPage({ onChangeTeacher, onUpdateProfile, onBack,
               </p>
             )}
           </section>
+
+          {/* サブスクリプション管理 */}
+          {(plan === 'light' || plan === 'standard') && isSupabaseConfigured() && (
+            <section className="bg-white rounded-2xl p-5 shadow-sm mb-4">
+              <h2 className="text-sm font-semibold text-gray-500 mb-3">サブスクリプション</h2>
+              <p className="text-xs text-gray-400 mb-3">
+                プランの変更・解約はこちらから行えます
+              </p>
+              {portalError && (
+                <p className="text-xs text-red-500 mb-2">{portalError}</p>
+              )}
+              <button
+                onClick={handleManageSubscription}
+                disabled={portalLoading}
+                className="w-full border border-gray-300 text-gray-600 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-60"
+              >
+                {portalLoading ? '読み込み中...' : 'プランの変更・解約'}
+              </button>
+            </section>
+          )}
 
           {/* 会話履歴 */}
           <section className="bg-white rounded-2xl p-5 shadow-sm mb-4">

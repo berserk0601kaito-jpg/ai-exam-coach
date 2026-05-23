@@ -109,18 +109,18 @@ export default function App() {
   }
 
   if (screen === 'plan') {
-    return <PlanSelectPage reason="expired" onSelect={() => setScreen('chat')} />
+    return <PlanSelectPage reason="expired" onSelect={() => setScreen('chat')} user={user} />
   }
 
   if (screen === 'plan-device') {
-    return <PlanSelectPage reason="deviceLimit" onSelect={() => setScreen('survey')} />
+    return <PlanSelectPage reason="deviceLimit" onSelect={() => setScreen('survey')} user={user} />
   }
 
   if (screen === 'chat') {
     const plan = get('user:plan') || 'trial'
     const trialStart = get('user:trialStart')
     if (plan === 'trial' && isTrialExpired(trialStart)) {
-      return <PlanSelectPage onSelect={() => setScreen('chat')} />
+      return <PlanSelectPage onSelect={() => setScreen('chat')} user={user} />
     }
     return (
       <ChatPage onNavigateSettings={() => setScreen('settings')} onSaveToCloud={saveToCloud} />

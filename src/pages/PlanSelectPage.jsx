@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useStorage } from '../hooks/useStorage'
-import { useAuth } from '../hooks/useAuth'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { PLAN_LIMITS } from '../hooks/useUsage'
 
@@ -38,9 +37,8 @@ const MESSAGES = {
 
 const isStripeEnabled = () => !!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
 
-export default function PlanSelectPage({ reason = 'expired', onSelect }) {
+export default function PlanSelectPage({ reason = 'expired', onSelect, user }) {
   const { set } = useStorage()
-  const { user } = useAuth()
   const msg = MESSAGES[reason] ?? MESSAGES.expired
   const [loading, setLoading] = useState(null)
   const [error, setError] = useState(null)
