@@ -11,21 +11,9 @@ import CalendarPage from './CalendarPage'
 import { useReminder } from '../hooks/useReminder'
 import HomeScreenPrompt from '../components/HomeScreenPrompt'
 
-function ComingSoon({ label }) {
-  return (
-    <div className="flex-1 flex items-center justify-center bg-gray-50">
-      <div className="text-center text-gray-400">
-        <div className="text-5xl mb-4">🚧</div>
-        <p className="font-medium text-gray-600">{label}</p>
-        <p className="text-sm mt-1">フェーズ3以降で実装予定です</p>
-      </div>
-    </div>
-  )
-}
-
-export default function ChatPage({ onNavigateSettings, onSaveToCloud }) {
+export default function ChatPage({ onNavigateSettings }) {
   const { get, set } = useStorage()
-  const { sendMessage, retry, isLoading, error, setError, getRemainingCount } = useChat()
+  const { sendMessage, retry, isLoading, error, setError } = useChat()
   useReminder()
 
   const [messages, setMessages] = useState([])
@@ -86,10 +74,7 @@ export default function ChatPage({ onNavigateSettings, onSaveToCloud }) {
 
   const handleSend = async (content) => {
     const updated = await sendMessage(content)
-    if (updated) {
-      setMessages(updated)
-      onSaveToCloud?.()
-    }
+    if (updated) setMessages(updated)
   }
 
   const handleRetry = async () => {
@@ -105,8 +90,6 @@ export default function ChatPage({ onNavigateSettings, onSaveToCloud }) {
     setCurrentPage(page)
     setError(null)
   }
-
-  const remaining = getRemainingCount()
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -138,7 +121,6 @@ export default function ChatPage({ onNavigateSettings, onSaveToCloud }) {
               onRetry={handleRetry}
               isLoading={isLoading || autoStarting}
               error={error}
-              remainingCount={remaining}
             />
           </>
         )}

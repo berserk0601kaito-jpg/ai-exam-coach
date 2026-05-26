@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 
-export default function MessageInput({ onSend, onRetry, isLoading, error, remainingCount }) {
+export default function MessageInput({ onSend, onRetry, isLoading, error }) {
   const [text, setText] = useState('')
   const textareaRef = useRef(null)
 
@@ -20,13 +20,9 @@ export default function MessageInput({ onSend, onRetry, isLoading, error, remain
   }
 
   const showRetry = error?.type === 'api'
-  const showLimit = error?.type === 'limit'
 
   return (
     <div className="border-t border-gray-200 bg-white px-4 py-3">
-      {showLimit && (
-        <p className="text-sm text-red-500 text-center mb-2">{error.message}</p>
-      )}
       {showRetry && (
         <div className="flex items-center gap-2 mb-2">
           <p className="text-sm text-red-500 flex-1">送信に失敗しました: {error.message}</p>
@@ -45,8 +41,8 @@ export default function MessageInput({ onSend, onRetry, isLoading, error, remain
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          disabled={isLoading || showLimit}
-          placeholder={showLimit ? '本日の上限に達しました' : 'メッセージを入力… (Enter で送信)'}
+          disabled={isLoading}
+          placeholder="メッセージを入力… (Enter で送信)"
           rows={1}
           className="flex-1 resize-none border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed max-h-32 overflow-y-auto"
           style={{ lineHeight: '1.5' }}
@@ -57,7 +53,7 @@ export default function MessageInput({ onSend, onRetry, isLoading, error, remain
         />
         <button
           onClick={handleSubmit}
-          disabled={!text.trim() || isLoading || showLimit}
+          disabled={!text.trim() || isLoading}
           className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
@@ -65,9 +61,6 @@ export default function MessageInput({ onSend, onRetry, isLoading, error, remain
           </svg>
         </button>
       </div>
-      {typeof remainingCount === 'number' && !showLimit && (
-        <p className="text-xs text-gray-400 mt-1.5 text-right">今日あと {remainingCount} 回話せます</p>
-      )}
     </div>
   )
 }

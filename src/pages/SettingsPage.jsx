@@ -1,59 +1,10 @@
-import { useState } from 'react'
 import { useStorage } from '../hooks/useStorage'
-import { useAuth } from '../hooks/useAuth'
-import { isSupabaseConfigured } from '../lib/supabase'
-import { PLAN_LIMITS } from '../hooks/useUsage'
 
-const PLAN_LABELS = {
-  trial: '無料トライアル',
-  light: 'ライト（1,280円/月）',
-  standard: 'スタンダード（2,980円/月）',
-}
+export default function SettingsPage({ onChangeTeacher, onUpdateProfile, onBack }) {
+  const { get } = useStorage()
 
-export default function SettingsPage({ onChangeTeacher, onUpdateProfile, onBack, onLogout }) {
-  const { get, remove } = useStorage()
-  const { signOut, user } = useAuth()
-  const [portalLoading, setPortalLoading] = useState(false)
-  const [portalError, setPortalError] = useState(null)
-
-  const handleLogout = async () => {
-    if (!window.confirm('ログアウトしますか？')) return
-    if (isSupabaseConfigured()) await signOut().catch(() => {})
-    onLogout?.()
-  }
-
-  const handleManageSubscription = async () => {
-    if (!user) return
-    setPortalLoading(true)
-    setPortalError(null)
-    try {
-      const res = await fetch('/api/customer-portal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, returnUrl: window.location.origin }),
-      })
-      const data = await res.json()
-      if (data.url) {
-        window.location.href = data.url
-      } else {
-        setPortalError(data.error || 'エラーが発生しました')
-      }
-    } catch {
-      setPortalError('通信エラーが発生しました')
-    } finally {
-      setPortalLoading(false)
-    }
-  }
   const profile = get('user:profile') || {}
   const teacher = get('user:teacher')
-  const plan = get('user:plan') || 'trial'
-  const trialStart = get('user:trialStart')
-
-  const today = new Date().toISOString().split('T')[0]
-  const trialDaysLeft = trialStart
-    ? Math.max(0, 7 - Math.floor((new Date(today) - new Date(trialStart)) / 86400000))
-    : 0
-
   const historyCount = (get('user:history') || []).length
 
   return (
@@ -111,42 +62,6 @@ export default function SettingsPage({ onChangeTeacher, onUpdateProfile, onBack,
             </button>
           </section>
 
-          {/* プラン情報 */}
-          <section className="bg-white rounded-2xl p-5 shadow-sm mb-4">
-            <h2 className="text-sm font-semibold text-gray-500 mb-3">プラン</h2>
-            <p className="text-sm text-gray-700 mb-1">
-              現在のプラン：<span className="font-medium">{PLAN_LABELS[plan]}</span>
-            </p>
-            <p className="text-sm text-gray-500">
-              1日の上限：<span className="font-medium">{PLAN_LIMITS[plan]} 回</span>
-            </p>
-            {plan === 'trial' && (
-              <p className="text-sm text-indigo-600 mt-1">
-                トライアル残り <span className="font-bold">{trialDaysLeft}</span> 日
-              </p>
-            )}
-          </section>
-
-          {/* サブスクリプション管理 */}
-          {(plan === 'light' || plan === 'standard') && isSupabaseConfigured() && (
-            <section className="bg-white rounded-2xl p-5 shadow-sm mb-4">
-              <h2 className="text-sm font-semibold text-gray-500 mb-3">サブスクリプション</h2>
-              <p className="text-xs text-gray-400 mb-3">
-                プランの変更・解約はこちらから行えます
-              </p>
-              {portalError && (
-                <p className="text-xs text-red-500 mb-2">{portalError}</p>
-              )}
-              <button
-                onClick={handleManageSubscription}
-                disabled={portalLoading}
-                className="w-full border border-gray-300 text-gray-600 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-60"
-              >
-                {portalLoading ? '読み込み中...' : 'プランの変更・解約'}
-              </button>
-            </section>
-          )}
-
           {/* 会話履歴 */}
           <section className="bg-white rounded-2xl p-5 shadow-sm mb-4">
             <h2 className="text-sm font-semibold text-gray-500 mb-3">会話履歴</h2>
@@ -154,18 +69,6 @@ export default function SettingsPage({ onChangeTeacher, onUpdateProfile, onBack,
               保存済みメッセージ数：<span className="font-medium">{historyCount} 件</span>
             </p>
           </section>
-
-          {/* ログアウト */}
-          {isSupabaseConfigured() && (
-            <section className="bg-white rounded-2xl p-5 shadow-sm mb-4">
-              <button
-                onClick={handleLogout}
-                className="w-full border border-red-200 text-red-500 py-2.5 rounded-xl text-sm font-medium hover:bg-red-50 transition-colors"
-              >
-                ログアウト
-              </button>
-            </section>
-          )}
         </div>
       </div>
     </div>
