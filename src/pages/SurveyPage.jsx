@@ -3,7 +3,6 @@ import SurveyForm from '../components/SurveyForm'
 import { useStorage } from '../hooks/useStorage'
 import { callClaude, isMockMode } from '../lib/anthropic'
 import { buildTeacherPrompt, appendHistoryNote } from '../lib/prompts'
-import { markTrialUsedOnDevice } from '../lib/deviceId'
 import { getJSTDateString } from '../lib/date'
 
 function parseTeacherJSON(raw) {
@@ -63,12 +62,7 @@ export default function SurveyPage({ mode = 'initial', onComplete }) {
       set('user:teacher', teacher)
 
       if (mode === 'initial') {
-        const today = getJSTDateString()
-        set('user:plan', 'trial')
-        set('user:trialStart', today)
-        set('user:usage', { date: today, count: 0 })
         set('user:history', [])
-        markTrialUsedOnDevice() // この端末でのトライアル使用を記録
       }
 
       onComplete({ profile, teacher })
