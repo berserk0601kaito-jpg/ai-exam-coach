@@ -9,7 +9,7 @@ export default function ChatBubble({ message, teacherIcon }) {
         </div>
       )}
       <div
-        className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+        className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm md:text-sm leading-relaxed whitespace-pre-wrap ${
           isUser
             ? 'bg-indigo-600 text-white rounded-br-sm'
             : 'bg-white border border-gray-200 text-gray-800 rounded-bl-sm shadow-sm'

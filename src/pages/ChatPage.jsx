@@ -96,7 +96,8 @@ export default function ChatPage({ onNavigateSettings }) {
       <HomeScreenPrompt />
       <Sidebar currentPage={currentPage} onNavigate={handleNavigate} teacher={teacher} />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* ボトムナビ分の余白をスマホのみ追加 */}
+      <div className="flex-1 flex flex-col overflow-hidden pb-[56px] md:pb-0">
         {currentPage === 'chat' && (
           <>
             <div className="px-5 py-3 border-b border-gray-200 bg-white flex items-center gap-2">
