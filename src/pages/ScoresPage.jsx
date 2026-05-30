@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useStorage } from '../hooks/useStorage'
 import { useScores } from '../hooks/useScores'
-import { useUsage } from '../hooks/useUsage'
 import { callClaude, HAIKU } from '../lib/anthropic'
 
 // ── 科目定義 ────────────────────────────────────────────
@@ -376,7 +375,6 @@ function AddScoreModal({ onClose, onSave }) {
 
 // ── スコアカード ─────────────────────────────────────────
 function ScoreCard({ entry, teacher, onDelete, onAnalysisUpdate }) {
-  const { checkUsageLimit, incrementUsage, getRemainingCount } = useUsage()
   const [analyzing, setAnalyzing]     = useState(false)
   const [analysisError, setAnalysisError] = useState(null)
   const [showAnalysis, setShowAnalysis]   = useState(!!entry.aiAnalysis)
@@ -386,7 +384,6 @@ function ScoreCard({ entry, teacher, onDelete, onAnalysisUpdate }) {
   const totalPct   = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0
 
   const handleAnalyze = async () => {
-    if (!checkUsageLimit()) { setAnalysisError('本日の残り回数が0回です。また明日！'); return }
     setAnalyzing(true)
     setAnalysisError(null)
     try {
@@ -408,7 +405,6 @@ ${lines}
         messages: [{ role: 'user', content: prompt }],
         model: HAIKU,
       })
-      incrementUsage()
       onAnalysisUpdate(entry.id, response)
       setShowAnalysis(true)
     } catch (err) {
@@ -468,7 +464,7 @@ ${lines}
             disabled={analyzing}
             className="flex-1 bg-indigo-50 text-indigo-700 py-2 rounded-xl text-xs font-semibold hover:bg-indigo-100 disabled:opacity-50 transition-colors"
           >
-            {analyzing ? '分析中…' : `先生に分析してもらう（残り${getRemainingCount()}回）`}
+            {analyzing ? '分析中…' : '先生に分析してもらう'}
           </button>
         ) : (
           <button

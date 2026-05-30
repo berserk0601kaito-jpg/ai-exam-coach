@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useStorage } from '../hooks/useStorage'
 import { useBooks, PROGRESS_STATES } from '../hooks/useBooks'
-import { useUsage } from '../hooks/useUsage'
 import { callClaude, HAIKU } from '../lib/anthropic'
 
 const BOOK_SUBJECTS = ['英語', '数学', '国語', '物理', '化学', '生物', '地学', '地理', '日本史', '世界史', '政治・経済', '倫理', '情報', 'その他']
@@ -149,7 +148,6 @@ function BooksMenuView({ onNavigate }) {
 // ── AI提案 ────────────────────────────────────────────
 function AiRecommendView({ onNavigate, onAddBook }) {
   const { get } = useStorage()
-  const { checkUsageLimit, incrementUsage, getRemainingCount } = useUsage()
   const [subject, setSubject] = useState('')
   const [level, setLevel] = useState('')
   const [concerns, setConcerns] = useState('')
@@ -163,7 +161,6 @@ function AiRecommendView({ onNavigate, onAddBook }) {
 
   const handleSubmit = async () => {
     if (!subject) { setError('科目を選択してください'); return }
-    if (!checkUsageLimit()) { setError(`残り回数が0回です。また明日！`); return }
     setLoading(true)
     setError('')
     setResult('')
@@ -186,7 +183,6 @@ function AiRecommendView({ onNavigate, onAddBook }) {
         messages: [{ role: 'user', content: prompt }],
         model: HAIKU,
       })
-      incrementUsage()
       setResult(text)
     } catch (err) {
       setError(err.message)
@@ -236,7 +232,7 @@ function AiRecommendView({ onNavigate, onAddBook }) {
 
       <button onClick={handleSubmit} disabled={loading}
         className="w-full bg-indigo-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50">
-        {loading ? 'AIが提案中…' : `提案してもらう（残り${getRemainingCount()}回）`}
+        {loading ? 'AIが提案中…' : '提案してもらう'}
       </button>
 
       {result && (
@@ -345,7 +341,6 @@ function MyBooksView({ onNavigate }) {
 function AiAdviseView({ onNavigate }) {
   const { get } = useStorage()
   const { getAll } = useBooks()
-  const { checkUsageLimit, incrementUsage, getRemainingCount } = useUsage()
   const [result, setResult] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -355,7 +350,6 @@ function AiAdviseView({ onNavigate }) {
 
   const handleAdvise = async () => {
     if (books.length === 0) { setError('まず参考書を登録してください'); return }
-    if (!checkUsageLimit()) { setError('残り回数が0回です。また明日！'); return }
     setLoading(true)
     setError('')
     setResult('')
@@ -374,7 +368,6 @@ ${bookList}
         messages: [{ role: 'user', content: prompt }],
         model: HAIKU,
       })
-      incrementUsage()
       setResult(text)
     } catch (err) {
       setError(err.message)
@@ -406,7 +399,7 @@ ${bookList}
 
       <button onClick={handleAdvise} disabled={loading || books.length === 0}
         className="w-full bg-indigo-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50">
-        {loading ? 'AIが分析中…' : `AIにアドバイスをもらう（残り${getRemainingCount()}回）`}
+        {loading ? 'AIが分析中…' : 'AIにアドバイスをもらう'}
       </button>
 
       {result && (
@@ -427,7 +420,6 @@ ${bookList}
 function PlanView({ onNavigate }) {
   const { get, set } = useStorage()
   const { getAll } = useBooks()
-  const { checkUsageLimit, incrementUsage, getRemainingCount } = useUsage()
   const [hours, setHours] = useState('')
   const [selectedBooks, setSelectedBooks] = useState([])
   const [freeBooks, setFreeBooks] = useState('')
@@ -444,7 +436,6 @@ function PlanView({ onNavigate }) {
 
   const handleCreate = async () => {
     if (!hours || Number(hours) <= 0) { setError('1日の勉強時間を入力してください'); return }
-    if (!checkUsageLimit()) { setError('残り回数が0回です。また明日！'); return }
     setLoading(true)
     setError('')
     setResult('')
@@ -473,7 +464,6 @@ ${bookSection}
         messages: [{ role: 'user', content: prompt }],
         model: HAIKU,
       })
-      incrementUsage()
       set('user:latestPlan', text)
       setResult(text)
     } catch (err) {
@@ -550,7 +540,7 @@ ${bookSection}
 
       <button onClick={handleCreate} disabled={loading}
         className="w-full bg-indigo-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50">
-        {loading ? 'AIが計画を作成中…' : `計画を作ってもらう（残り${getRemainingCount()}回）`}
+        {loading ? 'AIが計画を作成中…' : '計画を作ってもらう'}
       </button>
 
       {result && (
