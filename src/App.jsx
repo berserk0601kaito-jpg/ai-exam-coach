@@ -4,7 +4,21 @@ import SurveyPage from './pages/SurveyPage'
 import ChatPage from './pages/ChatPage'
 import SettingsPage from './pages/SettingsPage'
 
+const MAINTENANCE = true
+
 export default function App() {
+  if (MAINTENANCE) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-sm">
+          <div className="text-5xl mb-4">🔧</div>
+          <h1 className="text-xl font-bold text-gray-800 mb-2">メンテナンス中です</h1>
+          <p className="text-sm text-gray-500">現在システムのメンテナンスを行っています。<br />しばらくお待ちください。</p>
+        </div>
+      </div>
+    )
+  }
+
   const { get } = useStorage()
   const [screen, setScreen] = useState('loading')
 
