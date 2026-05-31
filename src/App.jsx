@@ -7,6 +7,16 @@ import SettingsPage from './pages/SettingsPage'
 const MAINTENANCE = true
 
 export default function App() {
+  const { get } = useStorage()
+  const [screen, setScreen] = useState('loading')
+
+  useEffect(() => {
+    if (MAINTENANCE) return
+    const profile = get('user:profile')
+    const teacher = get('user:teacher')
+    setScreen(profile && teacher ? 'chat' : 'survey')
+  }, [])
+
   if (MAINTENANCE) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-50 flex items-center justify-center p-6">
@@ -18,15 +28,6 @@ export default function App() {
       </div>
     )
   }
-
-  const { get } = useStorage()
-  const [screen, setScreen] = useState('loading')
-
-  useEffect(() => {
-    const profile = get('user:profile')
-    const teacher = get('user:teacher')
-    setScreen(profile && teacher ? 'chat' : 'survey')
-  }, [])
 
   if (screen === 'loading') {
     return (
